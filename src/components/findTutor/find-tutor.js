@@ -1,51 +1,53 @@
 import React, { Component } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  StatusBar,
-  Image,
-  TouchableWithoutFeedback,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Keyboard,
-  KeyboardAvoidingView
-} from "react-native";
+import { View, Text, StyleSheet, StatusBar, Image, TouchableWithoutFeedback, TextInput, TouchableOpacity, ScrollView, Keyboard, KeyboardAvoidingView } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
+import DropdownAlert from "react-native-dropdownalert";
+import axios from "axios";
 
-const types = [
-  {
-    label: "Football",
-    value: "football"
-  },
-  {
-    label: "Baseball",
-    value: "baseball"
-  },
-  {
-    label: "Hockey",
-    value: "hockey"
-  }
-];
 
 export default class FindTutor extends Component {
+  state = {
+    previousType: undefined,
+    type: null,
+    types: [],
+    input: ''
+  };
+
+  apiDomain = "https://faheemapp.com/api-server";
+
+
+  async componentDidMount() {
+    const locationsUrl = `${this.apiDomain}/api/search/locations`;
+    const params = {
+      api_key_val: "1"
+    }
+    await axios
+      .post( locationsUrl , params )
+      .then( ( response ) => {
+        let location = response.data;
+
+        var destructuringData = location.reduce( ( emptyArray , obj ) => {
+          emptyArray.push({label:obj.name , value:obj.id})
+            return emptyArray;
+        } , [] );
+        this.setState({ types: destructuringData });
+      })
+      .catch( (error) => {
+        this.dropDownAlertRef.alertWithType( "error", "get location data failed" , "Please check the endpoint" );
+      })
+  }
+
   constructor(props) {
     super(props);
 
     this.inputRefs = {
       type: null
     };
-
-    this.state = {
-      previousType: undefined,
-      type: null
-    };
-
-    this.InputAccessoryView = this.InputAccessoryView.bind(this);
   }
 
+
   static navigationOptions = {
+    headerBackTitle: null,
     headerTitle: "Find a Tutor",
     headerStyle: {
       backgroundColor: "rgb(246,161,26)",
@@ -62,7 +64,7 @@ export default class FindTutor extends Component {
     headerLeft: null
   };
 
-  InputAccessoryView() {
+  InputAccessoryView = () => {
     return (
       <View style={styles.modalViewMiddle}>
         <TouchableWithoutFeedback
@@ -107,14 +109,37 @@ export default class FindTutor extends Component {
     );
   }
 
+  handleSubmit = async () => {
+    if ( this.state.type === null || this.state.input === "" ) {
+      this.dropDownAlertRef.alertWithType( "error", "Search Failed" , "Please do not forget to fill all of the field" );
+    } else {
+      this.props.navigation.navigate('SearchResult', { input: this.state.input , type: this.state.type } )
+    }
+  }
+
   render() {
     const placeholder = {
-      label: "Type...",
+      label: "Select City",
       value: null,
       color: "rgb(192,192,192)"
     };
     return (
       <React.Fragment>
+        <View style={{ zIndex: 10 }}>
+          <DropdownAlert
+            ref={ref => (this.dropDownAlertRef = ref)}
+            errorColor="#e51025"
+            titleStyle={{
+              color: "#FFF",
+              fontFamily: "FuturaMedium",
+              fontSize: 18
+            }}
+            messageStyle={{
+              color: "#FFF",
+              fontFamily: "FuturaMedium",
+            }}
+          />
+        </View>
         <StatusBar barStyle="light-content" />
 
         <View style={styles.container}>
@@ -146,9 +171,9 @@ export default class FindTutor extends Component {
                 </View>
                 <View style={styles.pickerParent}>
                   <RNPickerSelect
-                    placeholder={placeholder}
-                    items={types}
-                    value={this.state.type}
+                    placeholder={ placeholder }
+                    items={ this.state.types }
+                    value={ this.state.type }
                     onValueChange={value => {
                       this.setState({
                         type: value
@@ -188,9 +213,14 @@ export default class FindTutor extends Component {
                   <TextInput
                     placeholder="Search the course or test name"
                     placeholderTextColor="rgb(192,192,192)"
-                    style={styles.searchInput}
+                    style={ styles.searchInput }
+                    value={this.state.input}
+                    onChangeText={ inputValue => this.setState({ input : inputValue })}
                   />
-                  <TouchableOpacity style={styles.cancelWrapper}>
+                  <TouchableOpacity 
+                    onPress={ () => this.setState({ input: "" }) }
+                    style={styles.cancelWrapper}
+                  >
                     <Image
                       source={require("../../../assets/images/close.png")}
                       style={styles.cancelIcon}
@@ -207,7 +237,10 @@ export default class FindTutor extends Component {
           </ScrollView>
         </View>
         <View style={styles.searchBtnParent}>
-          <TouchableOpacity style={styles.searchBtn}>
+          <TouchableOpacity 
+            style={styles.searchBtn}
+            onPress={ this.handleSubmit }
+          >
             <Text style={styles.searchBtnText}>Search</Text>
           </TouchableOpacity>
         </View>
@@ -277,9 +310,9 @@ const styles = StyleSheet.create({
     paddingRight: 2
   },
   searchParent: {
-    backgroundColor: "transparent",
+    // backgroundColor: "transparent",
     flexDirection: "row",
-    height: 42,
+    height: 43,
     borderRadius: 5,
     borderWidth: 1,
     borderColor: "rgb(224,224,224)",
@@ -289,7 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: 15
   },
   searchInput: {
-    backgroundColor: "transparent",
+    // backgroundColor: "transparent",
     width: "90%",
     color: "rgb(46,45,45)",
     fontSize: 15,
