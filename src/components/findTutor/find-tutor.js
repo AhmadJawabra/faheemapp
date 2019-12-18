@@ -310,7 +310,6 @@ const styles = StyleSheet.create({
     paddingRight: 2
   },
   searchParent: {
-    // backgroundColor: "transparent",
     flexDirection: "row",
     height: 43,
     borderRadius: 5,
@@ -322,7 +321,6 @@ const styles = StyleSheet.create({
     marginBottom: 15
   },
   searchInput: {
-    // backgroundColor: "transparent",
     width: "90%",
     color: "rgb(46,45,45)",
     fontSize: 15,

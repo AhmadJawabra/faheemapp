@@ -1,33 +1,33 @@
 import React, { Component } from "react";
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Image, TouchableWithoutFeedback, TextInput, ScrollView } from "react-native";
+import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Image, TouchableWithoutFeedback, TextInput, ScrollView, KeyboardAvoidingView, Keyboard } from "react-native";
 import axios from "axios";
 import RNPickerSelect from "react-native-picker-select";
+import { Rating } from "react-native-ratings";
+import DropdownAlert from "react-native-dropdownalert";
 
 export default class SearchResult extends Component {
   state = {
     previousCityType: undefined,
     previousNearByType: undefined,
     tutorsList: [],
-    cityTypes: [
-      { label: 'Football', value: 'football' },
-      { label: 'Baseball', value: 'baseball' },
-      { label: 'Hockey', value: 'hockey' }
-    ],
+    cityTypes: [],
     nearByTypes: [
-      { label: 'One', value: 'one' },
-      { label: 'Two', value: 'two' },
-      { label: 'Three', value: 'three' }
+      { label: "One", value: "one" },
+      { label: "Two", value: "two" },
+      { label: "Three", value: "three" }
     ],
     cityType: null,
     nearByType: null,
+    input: '',
   };
+
 
   constructor(props) {
     super(props);
 
     this.inputRefs = {
       cityType: null,
-      nearByType: null,
+      nearByType: null
     };
   }
 
@@ -74,7 +74,7 @@ export default class SearchResult extends Component {
         </TouchableWithoutFeedback>
       </View>
     );
-  }
+  };
 
   InputAccessoryViewNearBy = () => {
     return (
@@ -119,7 +119,7 @@ export default class SearchResult extends Component {
         </TouchableWithoutFeedback>
       </View>
     );
-  }
+  };
 
   apiDomain = "https://faheemapp.com/api-server";
 
@@ -148,25 +148,69 @@ export default class SearchResult extends Component {
     }
   };
 
-  // async componentDidMount() {
-  //   const tutorsListUrl = `${this.apiDomain}/api/search/tutors`;
-  //   const params = {
-  //     api_key_val: "1",
-  //     student_id: 333,
-  //     lat: 26.236126,
-  //     long: 50.039303,
-  //     keyword: this.props.navigation.getParam('input'),
-  //     location_id: this.props.navigation.getParam('type')
-  //   };
-  //   await axios
-  //     .post(tutorsListUrl, params)
-  //     .then(response => {
-  //       console.log("Tutors List from screen two", response.data);
-  //     })
-  //     .catch(error => {
-  //       console.log(" print the error ", error);
-  //     });
-  // }
+
+  handleSearch = async () => {
+    if ( this.state.cityType === null || this.state.input === "" ) {
+      this.dropDownAlertRef.alertWithType( "error", "Search Failed" , "Please do not forget to fill all of the field" );
+    } else {
+      const tutorsListUrl = `${this.apiDomain}/api/search/tutors`;
+      const params = {
+        api_key_val: "1",
+        student_id: 333,
+        lat: 26.236126,
+        long: 50.039303,
+        keyword: this.state.input,
+        location_id: this.state.cityType
+      };
+      await axios
+        .post(tutorsListUrl, params)
+        .then(response => {
+          console.log("Tutors List from screen two", response.data);
+          this.setState({ tutorsList: response.data });
+        })
+        .catch(error => {
+          this.dropDownAlertRef.alertWithType( "error", "Get Tutors List data failed" , "Please check the endpoint" );
+        });
+    }
+  }
+
+  async componentDidMount() {
+    const tutorsListUrl = `${this.apiDomain}/api/search/tutors`;
+    const params = {
+      api_key_val: "1",
+      student_id: 333,
+      lat: 26.236126,
+      long: 50.039303,
+      keyword: this.props.navigation.getParam("input"),
+      location_id: this.props.navigation.getParam("type")
+    };
+    await axios
+      .post(tutorsListUrl, params)
+      .then(response => {
+        console.log("Tutors List from screen two", response.data);
+        this.setState({ tutorsList: response.data });
+      })
+      .catch(error => {
+        console.log(" print the error ", error);
+      });
+    const locationsUrl = `${this.apiDomain}/api/search/locations`;
+    const locationsParams = {
+      api_key_val: "1"
+    }
+    await axios
+      .post( locationsUrl , locationsParams )
+      .then( ( response ) => {
+        let location = response.data;
+        var destructuringData = location.reduce( ( emptyArray , obj ) => {
+          emptyArray.push({label:obj.name , value:obj.id})
+            return emptyArray;
+        } , [] );
+        this.setState({ cityTypes: destructuringData });
+      })
+      .catch( (error) => {
+        this.dropDownAlertRef.alertWithType( "error", "Get location data failed" , "Please check the endpoint" );
+      })
+  }
 
   render() {
     const placeholder = {
@@ -179,26 +223,109 @@ export default class SearchResult extends Component {
       value: null,
       color: "rgb(192,192,192)"
     };
-
     return (
       <React.Fragment>
+        <View style={{ zIndex: 10 }}>
+          <DropdownAlert
+            ref={ref => (this.dropDownAlertRef = ref)}
+            errorColor="#e51025"
+            titleStyle={{
+              color: "#FFF",
+              fontFamily: "FuturaMedium",
+              fontSize: 18
+            }}
+            messageStyle={{
+              color: "#FFF",
+              fontFamily: "FuturaMedium",
+            }}
+          />
+        </View>
         <StatusBar barStyle="light-content" />
         <View style={styles.container}>
-
           <ScrollView
             style={styles.scrollContainer}
             contentContainerStyle={styles.scrollContentContainer}
           >
-
-        <View style={ styles.pickerWithInput } >
-          <View style={ styles.pickerParent }>
+            <TouchableWithoutFeedback
+              onPress={() => Keyboard.dismiss()}
+              style={{ flex: 1 }}
+            >
+              <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior="padding"
+                enabled
+                keyboardVerticalOffset={45}
+              >
+            <View style={styles.pickerWithInput}>
+              <View style={styles.pickerParent}>
+                <RNPickerSelect
+                  placeholder={placeholder}
+                  items={this.state.cityTypes}
+                  value={this.state.cityType}
+                  onValueChange={value => {
+                    this.setState({
+                      cityType: value
+                    });
+                  }}
+                  style={{
+                    ...pickerSelectStyles,
+                    iconContainer: {
+                      top: 20,
+                      right: 12
+                    },
+                    modalViewBottom: {
+                      backgroundColor: "rgb(247,247,247)"
+                    }
+                  }}
+                  useNativeAndroidPickerStyle={false}
+                  Icon={() => {
+                    return (
+                      <Image
+                        source={require("../../../assets/images/bottom.png")}
+                        style={{ width: 10, height: 6 }}
+                      />
+                    );
+                  }}
+                  onOpen={() => {
+                    this.setState({
+                      previousCityType: this.state.cityType
+                    });
+                  }}
+                  InputAccessoryView={this.InputAccessoryViewCity}
+                  ref={ref => {
+                    this.inputRefs.cityType = ref;
+                  }}
+                />
+              </View>
+              <View style={styles.inputParent}>
+                <TextInput
+                  placeholder="Search Here..."
+                  placeholderTextColor="rgb(192,192,192)"
+                  style={styles.inputField}
+                  value={ this.state.input }
+                  onChangeText={ inputValue => this.setState({ input : inputValue })}
+                />
+                <TouchableOpacity 
+                  style={styles.searchBtn}
+                  onPress={ this.handleSearch }
+                >
+                  <Image
+                    source={require("../../../assets/images/search-icon.png")}
+                    style={styles.searchIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.advanceTextParent}>
+              <Text style={styles.advanceText}>Advanced Search?</Text>
+            </View>
             <RNPickerSelect
-              placeholder={ placeholder }
-              items={ this.state.cityTypes }
-              value={ this.state.cityType }
-              onValueChange={ value => {
+              placeholder={placeholderNearby}
+              items={this.state.nearByTypes}
+              value={this.state.nearByType}
+              onValueChange={value => {
                 this.setState({
-                  cityType: value
+                  nearByType: value
                 });
               }}
               style={{
@@ -222,175 +349,90 @@ export default class SearchResult extends Component {
               }}
               onOpen={() => {
                 this.setState({
-                  previousCityType: this.state.cityType
+                  previousNearByType: this.state.nearByType
                 });
               }}
-              InputAccessoryView={this.InputAccessoryViewCity}
+              InputAccessoryView={this.InputAccessoryViewNearBy}
               ref={ref => {
-                this.inputRefs.cityType = ref;
+                this.inputRefs.nearByType = ref;
               }}
             />
-          </View>
-          <View style={ styles.inputParent }>
-            <TextInput 
-              placeholder="Search Here..."
-              placeholderTextColor="rgb(192,192,192)"
-              style={ styles.inputField }
-            />
-            <TouchableOpacity
-              style={ styles.searchBtn }
-            >
-              <Image 
-                source={ require('../../../assets/images/search-icon.png') }
-                style={ styles.searchIcon }
-              />
-            </TouchableOpacity>
-          </View>
-          </View>
-          <View style={ styles.advanceTextParent }>
-            <Text style={ styles.advanceText }>Advanced Search?</Text>
-          </View>
-          <RNPickerSelect
-            placeholder={ placeholderNearby }
-            items={ this.state.nearByTypes }
-            value={ this.state.nearByType }
-            onValueChange={ value => {
-              this.setState({
-                nearByType: value
-              });
-            }}
-            style={{
-              ...pickerSelectStyles,
-              iconContainer: {
-                  top: 20,
-                  right: 12
-              },
-              modalViewBottom: {
-                backgroundColor: "rgb(247,247,247)"
-              }
-            }}
-            useNativeAndroidPickerStyle={false}
-            Icon={() => {
-              return (
-                <Image
-                  source={require("../../../assets/images/bottom.png")}
-                  style={{ width: 10, height: 6 }}
-                />
-              );
-            }}
-            onOpen={() => {
-              this.setState({
-                previousNearByType: this.state.nearByType
-              });
-            }}
-            InputAccessoryView={this.InputAccessoryViewNearBy}
-            ref={ref => {
-              this.inputRefs.nearByType = ref;
-            }}
-          />
-          
-          <View style={ styles.cardWrappers }>
 
-            {/* cardItem */}
-            <View style={ styles.cardItem }>
-              <View
-                style={ styles.imageDetailsPrice }
-              >
-                <View style={ styles.personalImageParent }>
-                  <View style={ styles.firstImageWrapper }>
-                    <View
-                      style={ styles.secondImageWrapper }
-                    >
-                      <Image 
-                        source={ require('../../../assets/images/ahmad.png') }
-                        style={ styles.personalIcon }
-                        resizeMode="cover"
-                      />
-                    </View>
-                  </View>
+            <View style={styles.cardWrappers}>
+              {this.state.tutorsList.map( tutorsList => {
+                return (
+                  <View style={styles.cardItem} key={tutorsList.id}>
+                    <View style={styles.imageDetailsPrice}>
+                      <View style={styles.personalImageParent}>
+                        <View style={styles.firstImageWrapper}>
+                          <View style={styles.secondImageWrapper}>
+                            <Image
+                              source={{ uri: tutorsList.photo }}
+                              style={styles.personalIcon}
+                              resizeMode="contain"
+                            />
+                          </View>
+                        </View>
 
-                  <View 
-                    style={ styles.personalDetailsParent }
-                  >
-                    <View style={ styles.tutorNameWrapper }>
-                      <Text style={ styles.tutorNameText } >Abdul Kareem</Text>
-                    </View>
+                        <View style={styles.personalDetailsParent}>
+                          <View style={styles.tutorNameWrapper}>
+                            <Text style={styles.tutorNameText}>
+                              {tutorsList.username}
+                            </Text>
+                          </View>
 
-                    <View style={ styles.rateWrapper }>
-                      <Image 
-                        source={ require('../../../assets/images/start.png') }
-                        style={ styles.starIcon }
-                      />
-                      <Image 
-                        source={ require('../../../assets/images/start.png') }
-                        style={ styles.starIcon }
-                      />
-                      <Image 
-                        source={ require('../../../assets/images/start.png') }
-                        style={ styles.starIcon }
-                      />
-                      <Image 
-                        source={ require('../../../assets/images/start.png') }
-                        style={ styles.starIcon }
-                      />
-                      <Image 
-                        source={ require('../../../assets/images/start.png') }
-                        style={ styles.starIcon }
-                      />
-                    </View>
-
-                    <View style={ styles.UniversitySpecialization }>
-                      <View>
-                        <Image
-                          source={ require('../../../assets/images/students-cap.png') }
-                          style={ styles.studentsCapIcon }
-                        />
+                          <View style={styles.rateWrapper}>
+                            <Rating
+                              type="star"
+                              startingValue={ Number(tutorsList.avg_rating) }
+                              ratingCount={5}
+                              imageSize={15}
+                            />
+                          </View>
+                          <View style={styles.UniversitySpecialization}>
+                            <View>
+                              <Image
+                                source={require("../../../assets/images/students-cap.png")}
+                                style={styles.studentsCapIcon}
+                              />
+                            </View>
+                            <View>
+                              <Text style={styles.UniversitySpecializationText}>
+                                {tutorsList.qualification}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
                       </View>
 
-                      <View>
-                        <Text style={ styles.UniversitySpecializationText } >Bachelor Student - qualification</Text>
+                      <View style={styles.priceParent}>
+                        <Text style={styles.priceText}>
+                          {tutorsList.price} SR
+                        </Text>
+                        <Text style={styles.priceText}>per hour</Text>
                       </View>
+                    </View>
 
+                    <View style={styles.categoriesParent}>
+                      {tutorsList.subjects.map(subject_name => {
+                        return (
+                          <View
+                            style={styles.categoriesWrapper}
+                            key={subject_name.subject_id}
+                          >
+                            <Text style={styles.categoriesText}>
+                              {subject_name.subject_name}
+                            </Text>
+                          </View>
+                        );
+                      })}
                     </View>
                   </View>
-                </View>
-
-
-
-
-
-                <View style={ styles.priceParent }>
-                  <Text style={ styles.priceText } >SR 93</Text>
-                  <Text style={ styles.priceText }>per hour</Text>
-                </View>
-              </View>
-
-
-              <View style={ styles.categoriesParent }>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>Mathematics</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>Math 001</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>ICS 103</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>English</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>Biology</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>ICS 103</Text>
-                </View>
-                <View style={ styles.categoriesWrapper }>
-                  <Text style={ styles.categoriesText }>ICS 103</Text>
-                </View>
-              </View>
+                );
+              })}
             </View>
-          </View>
+            </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
           </ScrollView>
         </View>
       </React.Fragment>
@@ -400,56 +442,59 @@ export default class SearchResult extends Component {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1
   },
   scrollContainer: {
-    flex: 1,
+    flex: 1
   },
   scrollContentContainer: {
     paddingTop: 25,
-    paddingBottom: 70,
+    paddingBottom: 30,
     paddingHorizontal: 20
   },
-  pickerWithInput: { 
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  pickerWithInput: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between"
   },
-  pickerParent: { 
-    width: '33%'
+  pickerParent: {
+    width: "33%"
   },
-  inputParent: { 
-    width: '63%', 
-    borderRadius: 5, 
+  inputParent: {
+    width: "63%",
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: 'black', 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    borderColor: "black",
+    flexDirection: "row",
+    alignItems: "center",
     height: 45,
     borderColor: "rgb(224,224,224)",
     shadowOffset: { width: 1, height: 1 },
     shadowColor: "rgba(0,0,0,0.18)",
     shadowOpacity: 1.0,
-    overflow: 'hidden',
+    overflow: "hidden"
   },
-  inputField: { 
-    padding: 10, 
-    width: '80%', 
-    height: '100%',
+  inputField: {
+    padding: 10,
+    width: "80%",
+    height: "100%",
+    color: "rgb(46,45,45)",
+    fontSize: 15,
+    fontFamily: "FuturaLight"
   },
-  searchBtn: { 
-    width: '20%', 
-    height: '100%',
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: 'orange'
+  searchBtn: {
+    width: "20%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "orange"
   },
-  searchIcon: { 
+  searchIcon: {
     width: 20,
     height: 20
   },
-  advanceTextParent: { 
-    marginVertical: 10,
+  advanceTextParent: {
+    marginVertical: 10
   },
   advanceText: {
     fontFamily: "FuturaMedium",
@@ -480,127 +525,124 @@ const styles = StyleSheet.create({
     paddingRight: 2
   },
   cardWrappers: {
-    marginVertical: 15,
+    marginVertical: 15
   },
   cardItem: {
     marginBottom: 10,
-    padding: 10, 
+    padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(254,0,0,0.3)',
-    
-    shadowOffset: { width: 1, height: 1 },
-    shadowColor: "rgba(254,0,0,0.3)",
-    shadowOpacity: 1.0,
+    borderColor: "rgba(254,0,0,0.3)",
+    // shadowOffset: { width: 1, height: 1 },
+    // shadowColor: "rgba(254,0,0,0.3)",
+    // shadowOpacity: 1.0,
     elevation: 1,
-
     borderRadius: 5
   },
-  imageDetailsPrice: { 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomColor: 'rgb(240,240,240)',
+  imageDetailsPrice: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomColor: "rgb(240,240,240)",
     borderBottomWidth: 1,
     paddingBottom: 10,
-    width: '100%',
+    width: "100%"
   },
   personalImageParent: {
-    alignItems: 'center',
-    width: '80%',
+    alignItems: "center",
+    width: "80%",
     // backgroundColor: 'yellow',
-    flexDirection: 'row'
+    flexDirection: "row"
   },
   firstImageWrapper: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    width: '30%'
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    width: "30%"
   },
-  secondImageWrapper: { 
-    borderRadius: 60,
-    height: 60,
-    width: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+  secondImageWrapper: {
+    borderRadius: 70,
+    height: 70,
+    width: 70,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: 'rgba(254,0,0,0.09)'
+    borderColor: "rgba(254,0,0,0.09)"
   },
-  personalIcon: { 
-    width: 60,
-    height: 60
+  personalIcon: {
+    width: 70,
+    height: 70
   },
   personalDetailsParent: {
     padding: 5,
     // backgroundColor: 'red',
-    width: '70%'
+    width: "70%"
   },
   tutorNameWrapper: {
     marginBottom: 2
   },
-  tutorNameText: { 
-    fontFamily: 'FuturaMedium', 
-    fontSize: 16, 
+  tutorNameText: {
+    fontFamily: "FuturaMedium",
+    fontSize: 16,
     marginBottom: 3,
+    textAlign: "left"
   },
-  rateWrapper: { 
-    flexDirection: 'row', 
-    justifyContent: 'flex-start', 
-    alignItems: 'center', 
-    marginBottom: 2,
+  rateWrapper: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    marginBottom: 2
   },
-  starIcon: { 
-    width: 15, 
-    height: 15, 
-    marginRight: 3,
+  starIcon: {
+    width: 15,
+    height: 15,
+    marginRight: 3
   },
   UniversitySpecialization: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    flexDirection: "row",
+    alignItems: "center"
     // backgroundColor: '#ccc'
   },
-  studentsCapIcon: { 
+  studentsCapIcon: {
     width: 20,
     height: 20,
-    marginRight: 5,
+    marginRight: 5
   },
-  UniversitySpecializationText: { 
-    marginRight: 3, 
-    color:"rgb(103,103,103)",
-    fontFamily: 'FuturaLight', 
+  UniversitySpecializationText: {
+    marginRight: 3,
+    color: "rgb(103,103,103)",
+    fontFamily: "FuturaLight",
     fontSize: 14
   },
-  priceParent: { 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    width: '20%'
+  priceParent: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: "20%"
   },
-  priceText: { 
-    color:"rgb(103,103,103)",
-    fontFamily: 'FuturaMedium',
+  priceText: {
+    color: "rgb(103,103,103)",
+    fontFamily: "FuturaMedium",
     fontSize: 14
   },
-  categoriesParent: { 
-    marginTop: 8, 
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%', 
-    flexWrap:'wrap',
+  categoriesParent: {
+    marginTop: 8,
+    flexDirection: "row",
+    // justifyContent: 'center',
+    width: "100%",
+    flexWrap: "wrap"
   },
-  categoriesWrapper: { 
-    backgroundColor: 'rgb(246,161,26)', 
-    marginRight: 2, 
-    paddingVertical: 5, 
-    paddingHorizontal: 10, 
-    borderRadius: 10, 
-    marginBottom: 3 
+  categoriesWrapper: {
+    backgroundColor: "rgb(246,161,26)",
+    marginRight: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    marginBottom: 3
   },
-  categoriesText: { 
-    color: 'white', 
-    fontFamily: 'FuturaMedium'
-  },
-
-
+  categoriesText: {
+    color: "white",
+    fontFamily: "FuturaMedium"
+  }
 });
 
 const pickerSelectStyles = StyleSheet.create({
