@@ -19,6 +19,7 @@ export default class SearchResult extends Component {
     cityType: null,
     nearByType: null,
     input: '',
+    toggleSearch: false,
   };
 
 
@@ -29,6 +30,10 @@ export default class SearchResult extends Component {
       cityType: null,
       nearByType: null
     };
+  }
+
+  handleToggleSearch = () => {
+    this.setState({ toggleSearch: !this.state.toggleSearch });
   }
 
   InputAccessoryViewCity = () => {
@@ -165,7 +170,6 @@ export default class SearchResult extends Component {
       await axios
         .post(tutorsListUrl, params)
         .then(response => {
-          console.log("Tutors List from screen two", response.data);
           this.setState({ tutorsList: response.data });
         })
         .catch(error => {
@@ -187,12 +191,13 @@ export default class SearchResult extends Component {
     await axios
       .post(tutorsListUrl, params)
       .then(response => {
-        console.log("Tutors List from screen two", response.data);
         this.setState({ tutorsList: response.data });
       })
       .catch(error => {
-        console.log(" print the error ", error);
+        this.dropDownAlertRef.alertWithType( "error", "Get Tutors List data failed" , "Please check the endpoint" );
       });
+
+
     const locationsUrl = `${this.apiDomain}/api/search/locations`;
     const locationsParams = {
       api_key_val: "1"
@@ -316,10 +321,13 @@ export default class SearchResult extends Component {
                 </TouchableOpacity>
               </View>
             </View>
-            <View style={styles.advanceTextParent}>
+            <TouchableOpacity 
+              style={styles.advanceTextParent}
+              onPress={ this.handleToggleSearch }
+            >
               <Text style={styles.advanceText}>Advanced Search?</Text>
-            </View>
-            <RNPickerSelect
+            </TouchableOpacity>
+            { this.state.toggleSearch === true ? ( <RNPickerSelect
               placeholder={placeholderNearby}
               items={this.state.nearByTypes}
               value={this.state.nearByType}
@@ -356,80 +364,111 @@ export default class SearchResult extends Component {
               ref={ref => {
                 this.inputRefs.nearByType = ref;
               }}
-            />
+            /> ) : null }
+            
 
             <View style={styles.cardWrappers}>
-              {this.state.tutorsList.map( tutorsList => {
-                return (
-                  <View style={styles.cardItem} key={tutorsList.id}>
-                    <View style={styles.imageDetailsPrice}>
-                      <View style={styles.personalImageParent}>
-                        <View style={styles.firstImageWrapper}>
-                          <View style={styles.secondImageWrapper}>
-                            <Image
-                              source={{ uri: tutorsList.photo }}
-                              style={styles.personalIcon}
-                              resizeMode="contain"
-                            />
-                          </View>
-                        </View>
-
-                        <View style={styles.personalDetailsParent}>
-                          <View style={styles.tutorNameWrapper}>
-                            <Text style={styles.tutorNameText}>
-                              {tutorsList.username}
-                            </Text>
-                          </View>
-
-                          <View style={styles.rateWrapper}>
-                            <Rating
-                              type="star"
-                              startingValue={ Number(tutorsList.avg_rating) }
-                              ratingCount={5}
-                              imageSize={15}
-                            />
-                          </View>
-                          <View style={styles.UniversitySpecialization}>
-                            <View>
+              { this.state.tutorsList.length === 0 ? (
+                <View style={ styles.noResultParent }>
+                  <Image
+                    source={ require('../../../assets/images/resultNull.png') }
+                    style={ styles.nullResultIcon }
+                  />
+                  <Text style={ styles.noResultText } >There is no result</Text>
+                </View>
+              ) : (
+                 this.state.tutorsList.map( tutorsList => {
+                  return (
+                    <View style={styles.cardItem} key={tutorsList.id}>
+                      <View style={styles.imageDetailsPrice}>
+                        <View style={styles.personalImageParent}>
+                          <View style={styles.firstImageWrapper}>
+                            <View style={styles.secondImageWrapper}>
                               <Image
-                                source={require("../../../assets/images/students-cap.png")}
-                                style={styles.studentsCapIcon}
+                                source={{ uri: tutorsList.photo }}
+                                style={styles.personalIcon}
+                                resizeMode="contain"
                               />
                             </View>
-                            <View>
-                              <Text style={styles.UniversitySpecializationText}>
-                                {tutorsList.qualification}
+                          </View>
+  
+                          <View style={styles.personalDetailsParent}>
+                            <View style={styles.tutorNameWrapper}>
+                              <Text style={styles.tutorNameText}>
+                                {tutorsList.username}
                               </Text>
+                            </View>
+  
+                            <View style={styles.rateWrapper}>
+                              <Rating
+                                type="star"
+                                startingValue={ Number(tutorsList.avg_rating) }
+                                ratingCount={5}
+                                imageSize={15}
+                              />
+                            </View>
+                            <View style={styles.UniversitySpecialization}>
+                              <View>
+                                <Image
+                                  source={require("../../../assets/images/students-cap.png")}
+                                  style={styles.studentsCapIcon}
+                                />
+                              </View>
+                              <View>
+                                <Text style={styles.UniversitySpecializationText}>
+                                  {tutorsList.qualification}
+                                </Text>
+                              </View>
                             </View>
                           </View>
                         </View>
+  
+                        <View style={styles.priceParent}>
+                          <Text style={styles.priceText}>
+                            {tutorsList.price} SR
+                          </Text>
+                          <Text style={styles.priceText}>per hour</Text>
+                        </View>
                       </View>
-
-                      <View style={styles.priceParent}>
-                        <Text style={styles.priceText}>
-                          {tutorsList.price} SR
-                        </Text>
-                        <Text style={styles.priceText}>per hour</Text>
+  
+                      <View style={styles.categoriesParent}>
+                        {tutorsList.subjects.map(subject_name => {
+                          return (
+                            <View
+                              style={styles.categoriesWrapper}
+                              key={subject_name.subject_id}
+                            >
+                              <Text style={styles.categoriesText}>
+                                {subject_name.subject_name}
+                              </Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     </View>
+                  );
+                })
 
-                    <View style={styles.categoriesParent}>
-                      {tutorsList.subjects.map(subject_name => {
-                        return (
-                          <View
-                            style={styles.categoriesWrapper}
-                            key={subject_name.subject_id}
-                          >
-                            <Text style={styles.categoriesText}>
-                              {subject_name.subject_name}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })}
+
+
+
+
+
+
+
+
+
+
+
+              )}
+              
+
+              
+
+
+
+
+
             </View>
             </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
@@ -449,7 +488,7 @@ const styles = StyleSheet.create({
   },
   scrollContentContainer: {
     paddingTop: 25,
-    paddingBottom: 30,
+    paddingBottom: 10,
     paddingHorizontal: 20
   },
   pickerWithInput: {
@@ -642,6 +681,19 @@ const styles = StyleSheet.create({
   categoriesText: {
     color: "white",
     fontFamily: "FuturaMedium"
+  },
+  noResultParent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nullResultIcon: { 
+    width: 100, 
+    height: 100, 
+    marginBottom: 15,
+  },
+  noResultText: { 
+    fontFamily: 'FuturaMedium', 
+    fontSize: 18
   }
 });
 

@@ -8,10 +8,25 @@ import axios from "axios";
 export default class FindTutor extends Component {
   state = {
     previousType: undefined,
+    previousNearByType: undefined,
     type: null,
     types: [],
-    input: ''
+    input: '',
+    toggleSearch: false,
+    nearByTypes: [
+      { label: "One", value: "one" },
+      { label: "Two", value: "two" },
+      { label: "Three", value: "three" }
+    ],
+    nearByType: null,
   };
+
+
+  handleToggleSearch = () => {
+    this.setState({ toggleSearch: !this.state.toggleSearch });
+  }
+
+
 
   apiDomain = "https://faheemapp.com/api-server";
 
@@ -41,7 +56,8 @@ export default class FindTutor extends Component {
     super(props);
 
     this.inputRefs = {
-      type: null
+      type: null,
+      nearByType: null,
     };
   }
 
@@ -109,6 +125,51 @@ export default class FindTutor extends Component {
     );
   }
 
+  InputAccessoryViewNearBy = () => {
+    return (
+      <View style={styles.modalViewMiddle}>
+        <TouchableWithoutFeedback
+          onPress={() => {
+            this.setState(
+              {
+                nearByType: this.state.previousNearByType
+              },
+              () => {
+                this.inputRefs.nearByType.togglePicker(true);
+              }
+            );
+          }}
+          hitSlop={{ top: 4, right: 4, bottom: 4, left: 4 }}
+        >
+          <View testID="needed_for_touchable">
+            <Text style={[styles.done, { color: "rgb(229,16,37)" }]}>
+              Cancel
+            </Text>
+          </View>
+        </TouchableWithoutFeedback>
+        <Text
+          style={{
+            color: "rgb(46,45,45)",
+            fontFamily: "FuturaMedium",
+            fontSize: 17
+          }}
+        >
+          Type
+        </Text>
+        <TouchableWithoutFeedback
+          onPress={() => {
+            this.inputRefs.nearByType.togglePicker(true);
+          }}
+          hitSlop={{ top: 4, right: 4, bottom: 4, left: 4 }}
+        >
+          <View testID="needed_for_touchable">
+            <Text style={styles.done}>Done</Text>
+          </View>
+        </TouchableWithoutFeedback>
+      </View>
+    );
+  };
+
   handleSubmit = async () => {
     if ( this.state.type === null || this.state.input === "" ) {
       this.dropDownAlertRef.alertWithType( "error", "Search Failed" , "Please do not forget to fill all of the field" );
@@ -120,6 +181,11 @@ export default class FindTutor extends Component {
   render() {
     const placeholder = {
       label: "Select City",
+      value: null,
+      color: "rgb(192,192,192)"
+    };
+    const placeholderNearby = {
+      label: "Near by",
       value: null,
       color: "rgb(192,192,192)"
     };
@@ -227,11 +293,57 @@ export default class FindTutor extends Component {
                     />
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.advanceTextParent}>
-                  <Text style={styles.advanceSearchText}>
-                    Advanced Search ?
-                  </Text>
+                <TouchableOpacity
+                  style={styles.advanceTextParent}
+                  onPress={ this.handleToggleSearch }
+                >
+                  <Text style={styles.advanceSearchText}>Advanced Search ?</Text>
                 </TouchableOpacity>
+                
+                { this.state.toggleSearch === true ? (
+                  <RNPickerSelect
+                  placeholder={placeholderNearby}
+                  items={this.state.nearByTypes}
+                  value={this.state.nearByType}
+                  onValueChange={value => {
+                    this.setState({
+                      nearByType: value
+                    });
+                  }}
+                  style={{
+                    ...pickerSelectStyles,
+                    iconContainer: {
+                      top: 20,
+                      right: 12
+                    },
+                    modalViewBottom: {
+                      backgroundColor: "rgb(247,247,247)"
+                    }
+                  }}
+                  useNativeAndroidPickerStyle={false}
+                  Icon={() => {
+                    return (
+                      <Image
+                        source={require("../../../assets/images/bottom.png")}
+                        style={{ width: 10, height: 6 }}
+                      />
+                    );
+                  }}
+                  onOpen={ () => {
+                    this.setState({
+                      previousNearByType: this.state.nearByType
+                    });
+                  }}
+                  InputAccessoryView={this.InputAccessoryViewNearBy}
+                  ref={ref => {
+                    this.inputRefs.nearByType = ref;
+                  }}
+                />
+                ) : null }
+                
+                
+
+
               </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
           </ScrollView>
