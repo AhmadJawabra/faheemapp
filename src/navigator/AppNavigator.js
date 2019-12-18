@@ -12,7 +12,7 @@ const AppNavigator = createStackNavigator(
     SearchResult: SearchResult
   },
   {
-    initialRouteName: "SearchResult"
+    initialRouteName: "Home"
   }
 );
 
