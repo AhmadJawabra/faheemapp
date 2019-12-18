@@ -365,8 +365,6 @@ export default class SearchResult extends Component {
                 this.inputRefs.nearByType = ref;
               }}
             /> ) : null }
-            
-
             <View style={styles.cardWrappers}>
               { this.state.tutorsList.length === 0 ? (
                 <View style={ styles.noResultParent }>
@@ -448,27 +446,7 @@ export default class SearchResult extends Component {
                     </View>
                   );
                 })
-
-
-
-
-
-
-
-
-
-
-
-
               )}
-              
-
-              
-
-
-
-
-
             </View>
             </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
@@ -683,6 +661,7 @@ const styles = StyleSheet.create({
     fontFamily: "FuturaMedium"
   },
   noResultParent: {
+    paddingTop: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
